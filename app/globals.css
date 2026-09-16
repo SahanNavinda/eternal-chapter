@@ -24,3 +24,31 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+@keyframes cinematicFade {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cinematic-fade {
+  animation: cinematicFade 1.5s ease-out forwards;
+}
+@keyframes cinematicZoom {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.06);
+  }
+}
+
+.cinematic-zoom {
+  animation: cinematicZoom 12s ease-out forwards;
+}
