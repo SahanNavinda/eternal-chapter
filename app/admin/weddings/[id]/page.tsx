@@ -23,8 +23,10 @@ type Video = {
   description: string | null;
   google_drive_url: string;
   vimeo_embed_url: string | null;
+  youtube_embed_url: string | null;
   thumbnail_url: string | null;
   download_enabled: boolean;
+  is_featured: boolean;
   display_order: number;
 };
 
@@ -58,9 +60,11 @@ export default function ManageWeddingPage() {
   const [customCategory, setCustomCategory] = useState("");
   const [filmDescription, setFilmDescription] = useState("");
   const [vimeoUrl, setVimeoUrl] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
   const [googleDriveUrl, setGoogleDriveUrl] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [downloadEnabled, setDownloadEnabled] = useState(true);
+  const [isFeatured, setIsFeatured] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -113,7 +117,7 @@ export default function ManageWeddingPage() {
       const { data, error } = await supabase
         .from("videos")
         .select(
-          "id, wedding_id, title, category, description, google_drive_url, vimeo_embed_url, thumbnail_url, download_enabled, display_order"
+          "id, wedding_id, title, category, description, google_drive_url, vimeo_embed_url, youtube_embed_url, thumbnail_url, download_enabled, is_featured, display_order"
         )
         .eq("wedding_id", weddingId)
         .order("display_order", { ascending: true });
@@ -211,10 +215,16 @@ export default function ManageWeddingPage() {
         title: filmTitle.trim(),
         category: finalCategory,
         description: filmDescription.trim() || null,
-        google_drive_url: googleDriveUrl.trim(),
+
         vimeo_embed_url: vimeoUrl.trim() || null,
+        youtube_embed_url: youtubeUrl.trim() || null,
+
+        google_drive_url: googleDriveUrl.trim(),
         thumbnail_url: thumbnailUrl.trim() || null,
+
         download_enabled: downloadEnabled,
+        is_featured: isFeatured,
+
         display_order: videos.length + 1,
       })
       .select()
@@ -235,9 +245,11 @@ export default function ManageWeddingPage() {
     setCustomCategory("");
     setFilmDescription("");
     setVimeoUrl("");
+    setYoutubeUrl("");
     setGoogleDriveUrl("");
     setThumbnailUrl("");
     setDownloadEnabled(true);
+    setIsFeatured(false);
 
     setShowAddFilm(false);
     setAddingFilm(false);
@@ -367,7 +379,6 @@ export default function ManageWeddingPage() {
       {/* CONTENT */}
       <section className="px-6 py-12 md:px-12 md:py-16">
         <div className="mx-auto max-w-6xl">
-
           {/* TITLE */}
           <div className="mb-12">
             <p className="text-[10px] tracking-[0.4em] text-white/30">
@@ -396,7 +407,6 @@ export default function ManageWeddingPage() {
             </div>
 
             <div className="grid gap-6 p-6 md:grid-cols-2 md:p-8">
-
               {/* PRIVATE LINK */}
               <div className="border border-white/10 bg-black/30 p-5">
                 <p className="text-[9px] tracking-[0.3em] text-white/30">
@@ -465,7 +475,6 @@ export default function ManageWeddingPage() {
             </div>
 
             <div className="space-y-7 p-6 md:p-8">
-
               {/* COUPLE NAME */}
               <div>
                 <label className="mb-2 block text-sm text-white/70">
@@ -606,7 +615,6 @@ export default function ManageWeddingPage() {
 
           {/* VIDEO MANAGEMENT */}
           <section className="mt-8 border border-white/10 bg-white/[0.02]">
-
             {/* HEADER */}
             <div className="flex flex-col justify-between gap-5 border-b border-white/10 px-6 py-5 md:flex-row md:items-center md:px-8">
               <div>
@@ -650,7 +658,6 @@ export default function ManageWeddingPage() {
                   onSubmit={handleAddFilm}
                   className="space-y-7"
                 >
-
                   {/* TITLE */}
                   <div>
                     <label className="mb-2 block text-sm text-white/70">
@@ -765,6 +772,29 @@ export default function ManageWeddingPage() {
                     </p>
                   </div>
 
+                  {/* YOUTUBE */}
+                  <div>
+                    <label className="mb-2 block text-sm text-white/70">
+                      YouTube Video URL
+                    </label>
+
+                    <input
+                      type="url"
+                      value={youtubeUrl}
+                      onChange={(e) =>
+                        setYoutubeUrl(e.target.value)
+                      }
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      disabled={addingFilm}
+                      className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 font-mono text-sm text-white outline-none placeholder:text-white/20 focus:border-white/30"
+                    />
+
+                    <p className="mt-2 text-xs leading-5 text-white/30">
+                      Optional. Normal YouTube links are
+                      supported and will be converted automatically.
+                    </p>
+                  </div>
+
                   {/* GOOGLE DRIVE */}
                   <div>
                     <label className="mb-2 block text-sm text-white/70">
@@ -847,6 +877,41 @@ export default function ManageWeddingPage() {
                     </button>
                   </div>
 
+                  {/* SHOW ON HOMEPAGE */}
+                  <div className="flex items-center justify-between rounded-xl border border-white/10 bg-black/30 px-5 py-5">
+                    <div>
+                      <p className="text-sm text-white/70">
+                        Show on Homepage
+                      </p>
+
+                      <p className="mt-1 max-w-xl text-xs leading-5 text-white/30">
+                        Display this film in the Featured
+                        Wedding Films section on the homepage.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setIsFeatured(!isFeatured)
+                      }
+                      disabled={addingFilm}
+                      className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+                        isFeatured
+                          ? "bg-white"
+                          : "bg-white/20"
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-1 h-4 w-4 rounded-full transition ${
+                          isFeatured
+                            ? "left-6 bg-black"
+                            : "left-1 bg-white/60"
+                        }`}
+                      />
+                    </button>
+                  </div>
+
                   {/* FORM ERROR */}
                   {error && (
                     <div className="border border-red-500/20 bg-red-500/5 px-5 py-4">
@@ -891,7 +956,6 @@ export default function ManageWeddingPage() {
                       className="border-b border-white/10 p-6 last:border-b-0 md:p-8"
                     >
                       <div className="flex flex-col justify-between gap-6 md:flex-row md:items-start">
-
                         <div className="flex-1">
                           <div className="flex flex-wrap items-center gap-3">
                             <span className="text-[9px] tracking-[0.25em] text-white/30">
@@ -923,6 +987,18 @@ export default function ManageWeddingPage() {
                               </span>
                             )}
 
+                            {video.youtube_embed_url && (
+                              <span className="border border-white/10 px-3 py-2 text-[8px] tracking-[0.2em] text-white/40">
+                                YOUTUBE PLAYBACK
+                              </span>
+                            )}
+
+                            {video.is_featured && (
+                              <span className="border border-white/10 px-3 py-2 text-[8px] tracking-[0.2em] text-white/60">
+                                HOMEPAGE FEATURED
+                              </span>
+                            )}
+
                             {video.download_enabled && (
                               <span className="border border-white/10 px-3 py-2 text-[8px] tracking-[0.2em] text-white/40">
                                 DOWNLOAD ENABLED
@@ -938,28 +1014,28 @@ export default function ManageWeddingPage() {
                         </div>
 
                         <div className="flex items-center gap-5">
-                        <button
+                          <button
                             type="button"
                             onClick={() =>
-                            router.push(
+                              router.push(
                                 `/admin/weddings/${weddingId}/edit-film/${video.id}`
-                            )
+                              )
                             }
                             className="text-[9px] tracking-[0.2em] text-white/50 transition hover:text-white"
-                        >
+                          >
                             EDIT →
-                        </button>
+                          </button>
 
-                        <button
+                          <button
                             type="button"
                             onClick={() =>
-                            handleDeleteFilm(video.id)
+                              handleDeleteFilm(video.id)
                             }
                             className="text-[9px] tracking-[0.2em] text-white/30 transition hover:text-red-300"
-                        >
+                          >
                             DELETE
-                        </button>
-</div>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}

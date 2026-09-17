@@ -13,6 +13,7 @@ type FeaturedFilm = {
   category: string;
   description: string | null;
   vimeo_embed_url: string | null;
+  youtube_embed_url: string | null;
   thumbnail_url: string | null;
   display_order: number;
 };
@@ -22,13 +23,20 @@ export default function Home() {
 
   const [accessCode, setAccessCode] = useState("");
   const [error, setError] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [heroVideoUrl, setHeroVideoUrl] = useState<string | null>(null);
   const [heroPosterUrl, setHeroPosterUrl] = useState("/hero.jpg");
   const [heroLoading, setHeroLoading] = useState(true);
 
+  
+
   const [featuredFilms, setFeaturedFilms] = useState<FeaturedFilm[]>([]);
   const [featuredLoading, setFeaturedLoading] = useState(true);
+
+  /* =========================
+      LOAD HOMEPAGE SETTINGS
+  ========================== */
 
   useEffect(() => {
     const loadHeroSettings = async () => {
@@ -56,6 +64,10 @@ export default function Home() {
     loadHeroSettings();
   }, []);
 
+  /* =========================
+      LOAD FEATURED FILMS
+  ========================== */
+
   useEffect(() => {
     const loadFeaturedFilms = async () => {
       const { data, error } = await supabase.rpc(
@@ -78,6 +90,10 @@ export default function Home() {
 
     loadFeaturedFilms();
   }, []);
+
+  /* =========================
+      CLIENT ACCESS
+  ========================== */
 
   const handleAccess = async () => {
     const code = accessCode.trim().toUpperCase();
@@ -112,11 +128,79 @@ export default function Home() {
     router.push(`/w/${data[0].slug}`);
   };
 
-  const getVimeoEmbedUrl = (url: string) => {
+  /* =========================
+      YOUTUBE VIDEO ID
+  ========================== */
+
+  const getYouTubeVideoId = (url: string) => {
+    try {
+      const value = url.trim();
+
+      const patterns = [
+        /youtube\.com\/watch\?v=([^&]+)/,
+        /youtube\.com\/embed\/([^?&]+)/,
+        /youtube\.com\/shorts\/([^?&]+)/,
+        /youtu\.be\/([^?&]+)/,
+      ];
+
+      for (const pattern of patterns) {
+        const match = value.match(pattern);
+
+        if (match?.[1]) {
+          return match[1];
+        }
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  /* =========================
+      YOUTUBE HERO URL
+  ========================== */
+
+  const getYouTubeHeroUrl = (
+    url: string,
+    muted: boolean
+  ) => {
+    const videoId = getYouTubeVideoId(url);
+
+    if (!videoId) {
+      return url;
+    }
+
+    return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=${
+      muted ? "1" : "0"
+    }&loop=1&playlist=${videoId}&controls=0&playsinline=1&rel=0&modestbranding=1`;
+  };
+
+  /* =========================
+      YOUTUBE FEATURED URL
+  ========================== */
+
+  const getYouTubeFeaturedUrl = (url: string) => {
+    const videoId = getYouTubeVideoId(url);
+
+    if (!videoId) {
+      return url;
+    }
+
+    return `https://www.youtube.com/embed/${videoId}?autoplay=0&mute=0&controls=1&playsinline=1&rel=0&modestbranding=1`;
+  };
+
+  /* =========================
+      VIMEO HERO URL
+  ========================== */
+
+  const getVimeoHeroUrl = (
+    url: string,
+    muted: boolean
+  ) => {
     try {
       let embedUrl = url.trim();
 
-      // Convert a normal Vimeo URL into the proper player URL
       if (
         embedUrl.includes("vimeo.com/") &&
         !embedUrl.includes("player.vimeo.com")
@@ -131,19 +215,26 @@ export default function Home() {
         embedUrl = `https://player.vimeo.com/video/${videoId}`;
       }
 
-      const separator = embedUrl.includes("?") ? "&" : "?";
+      const separator = embedUrl.includes("?")
+        ? "&"
+        : "?";
 
-      return `${embedUrl}${separator}autoplay=1&muted=1&loop=1&autopause=0&controls=0&unmute_button=0&badge=0&title=0&byline=0&portrait=0&vimeo_logo=0&volume=0`;
+      return `${embedUrl}${separator}autoplay=1&muted=${
+        muted ? "1" : "0"
+      }&loop=1&autopause=0&controls=0&unmute_button=0&badge=0&title=0&byline=0&portrait=0&vimeo_logo=0`;
     } catch {
       return url;
     }
   };
 
-  const getFeaturedVimeoUrl = (url: string) => {
+  /* =========================
+      VIMEO FEATURED URL
+  ========================== */
+
+  const getVimeoFeaturedUrl = (url: string) => {
     try {
       let embedUrl = url.trim();
 
-      // Convert a normal Vimeo URL into the proper player URL
       if (
         embedUrl.includes("vimeo.com/") &&
         !embedUrl.includes("player.vimeo.com")
@@ -158,7 +249,9 @@ export default function Home() {
         embedUrl = `https://player.vimeo.com/video/${videoId}`;
       }
 
-      const separator = embedUrl.includes("?") ? "&" : "?";
+      const separator = embedUrl.includes("?")
+        ? "&"
+        : "?";
 
       return `${embedUrl}${separator}autoplay=0&controls=1&title=0&byline=0&portrait=0`;
     } catch {
@@ -166,9 +259,25 @@ export default function Home() {
     }
   };
 
+  /* =========================
+      HERO VIDEO TYPE
+  ========================== */
+
   const isVimeoVideo =
     heroVideoUrl?.includes("vimeo.com") ||
     heroVideoUrl?.includes("player.vimeo.com");
+
+  const isYouTubeVideo =
+    heroVideoUrl?.includes("youtube.com") ||
+    heroVideoUrl?.includes("youtu.be");
+
+  /* =========================
+      TOGGLE HERO SOUND
+  ========================== */
+
+  const toggleHeroSound = () => {
+    setHeroMuted((current) => !current);
+  };
 
   return (
     <main className="min-h-screen bg-black text-white">
@@ -177,13 +286,13 @@ export default function Home() {
           NAVIGATION
       ========================== */}
 
-      <nav className="absolute left-0 right-0 top-0 z-30 px-6 py-6 md:px-12 md:py-8">
+      <nav className="absolute left-0 right-0 top-0 z-50 px-6 py-6 md:px-12 md:py-8">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
 
           {/* Logo */}
           <a
             href="/"
-            className="transition-opacity duration-300 hover:opacity-70"
+            className="relative z-50 transition-opacity duration-300 hover:opacity-70"
           >
             <img
               src="/logo.png"
@@ -216,7 +325,6 @@ export default function Home() {
               CONTACT
             </a>
 
-            {/* Appointment Button */}
             <a
               href="/appointment"
               className="border border-white/40 px-5 py-3 text-[9px] tracking-[0.25em] text-white transition-all duration-500 hover:bg-white hover:text-black"
@@ -229,15 +337,93 @@ export default function Home() {
           {/* Mobile Menu Button */}
           <button
             type="button"
-            aria-label="Open menu"
-            className="flex h-10 w-10 flex-col items-end justify-center gap-1.5 md:hidden"
+            aria-label={
+              mobileMenuOpen
+                ? "Close menu"
+                : "Open menu"
+            }
+            aria-expanded={mobileMenuOpen}
+            onClick={() =>
+              setMobileMenuOpen(!mobileMenuOpen)
+            }
+            className="relative z-50 flex h-10 w-10 flex-col items-end justify-center gap-1.5 md:hidden"
           >
-            <span className="block h-px w-6 bg-white" />
-            <span className="block h-px w-4 bg-white" />
+            <span
+              className={`block h-px w-6 bg-white transition-all duration-300 ${
+                mobileMenuOpen
+                  ? "translate-y-[4px] rotate-45"
+                  : ""
+              }`}
+            />
+
+            <span
+              className={`block h-px w-4 bg-white transition-all duration-300 ${
+                mobileMenuOpen
+                  ? "-translate-y-[4px] -rotate-45"
+                  : ""
+              }`}
+            />
           </button>
 
         </div>
       </nav>
+
+
+      {/* =========================
+          MOBILE MENU
+      ========================== */}
+
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-40 bg-black/95 backdrop-blur-md md:hidden">
+          <div className="flex min-h-screen flex-col items-center justify-center px-6">
+
+            <div className="flex flex-col items-center gap-10 text-center">
+
+              <a
+                href="#films"
+                onClick={() =>
+                  setMobileMenuOpen(false)
+                }
+                className="text-xs tracking-[0.4em] text-white/80 transition-colors duration-300 hover:text-white"
+              >
+                FILMS
+              </a>
+
+              <a
+                href="#about"
+                onClick={() =>
+                  setMobileMenuOpen(false)
+                }
+                className="text-xs tracking-[0.4em] text-white/80 transition-colors duration-300 hover:text-white"
+              >
+                ABOUT
+              </a>
+
+              <a
+                href="#contact"
+                onClick={() =>
+                  setMobileMenuOpen(false)
+                }
+                className="text-xs tracking-[0.4em] text-white/80 transition-colors duration-300 hover:text-white"
+              >
+                CONTACT
+              </a>
+
+              <a
+                href="/appointment"
+                onClick={() =>
+                  setMobileMenuOpen(false)
+                }
+                className="border border-white/40 px-7 py-4 text-[10px] tracking-[0.3em] text-white transition-all duration-500 hover:bg-white hover:text-black"
+              >
+                BOOK AN APPOINTMENT
+              </a>
+
+            </div>
+
+          </div>
+        </div>
+      )}
 
 
       {/* =========================
@@ -258,18 +444,44 @@ export default function Home() {
             />
           )}
 
-          {/* Vimeo Background Video */}
+          {/* Vimeo Hero Video */}
           {!heroLoading &&
             heroVideoUrl &&
             isVimeoVideo && (
               <div className="absolute inset-0 overflow-hidden">
 
                 <iframe
-                  src={getVimeoEmbedUrl(heroVideoUrl)}
-                  title="Eternal Chapter Wedding Film"
-                  className="absolute left-1/2 top-1/2 h-[56.25vw] min-h-full w-[177.78vh] min-w-full -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                  key="vimeo"
+                  src={getVimeoHeroUrl(
+                    heroVideoUrl,
+                    true
+                  )}
+                  title="Eternal Chapter"
+                  className="pointer-events-none absolute left-1/2 top-1/2 h-[56.25vw] min-h-full w-[177.78vh] min-w-full -translate-x-1/2 -translate-y-1/2"
                   frameBorder="0"
                   allow="autoplay; fullscreen; picture-in-picture"
+                  allowFullScreen
+                />
+
+              </div>
+            )}
+
+          {/* YouTube Hero Video */}
+          {!heroLoading &&
+            heroVideoUrl &&
+            isYouTubeVideo && (
+              <div className="absolute inset-0 overflow-hidden">
+
+                <iframe
+                  key="youtube"
+                  src={getYouTubeHeroUrl(
+                    heroVideoUrl,
+                    true
+                  )}
+                  title="Eternal Chapter"
+                  className="pointer-events-none absolute left-1/2 top-1/2 h-[56.25vw] min-h-full w-[177.78vh] min-w-full -translate-x-1/2 -translate-y-1/2"
+                  frameBorder="0"
+                  allow="autoplay; encrypted-media; picture-in-picture"
                   allowFullScreen
                 />
 
@@ -279,17 +491,18 @@ export default function Home() {
           {/* Direct Video File */}
           {!heroLoading &&
             heroVideoUrl &&
-            !isVimeoVideo && (
+            !isVimeoVideo &&
+            !isYouTubeVideo && (
               <video
-                className="absolute inset-0 h-full w-full object-cover"
-                src={heroVideoUrl}
-                poster={heroPosterUrl}
-                autoPlay
-                muted
-                loop
-                playsInline
-              />
-            )}
+                    className="absolute inset-0 h-full w-full object-cover"
+                    src={heroVideoUrl}
+                    poster={heroPosterUrl}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                />
+                   )}
 
           {/* Dark Cinematic Overlay */}
           <div className="absolute inset-0 bg-black/55" />
@@ -301,18 +514,19 @@ export default function Home() {
 
 
         {/* Hero Content */}
-        <div className="cinematic-fade relative z-10 flex max-w-6xl flex-col items-center px-6 pt-20 text-center">
+        <div className="cinematic-fade relative z-10 flex max-w-6xl flex-col items-center px-6 pt-10 text-center">
 
           {/* Small Label */}
           <p className="mb-8 text-[10px] tracking-[0.5em] text-white/60 md:text-xs">
-            WEDDING CINEMATOGRAPHY
+            YOUR STORY, BEAUTIFULLY TOLD
           </p>
 
           {/* Main Heading */}
           <h1
             className="max-w-5xl text-3xl font-extralight leading-[1.2] tracking-wide md:text-5xl lg:text-6xl"
             style={{
-              fontFamily: "Georgia, 'Times New Roman', serif",
+              fontFamily:
+                "Georgia, 'Times New Roman', serif",
               fontWeight: 300,
             }}
           >
@@ -323,9 +537,9 @@ export default function Home() {
 
           {/* Description */}
           <p className="mt-8 max-w-xl text-sm leading-7 text-white/60 md:text-base">
-            Cinematic wedding films created to preserve
+            Your memories become stories,
             <br className="hidden md:block" />
-            the moments you never want to forget.
+            your stories become chapters, forever.
           </p>
 
           {/* CTA Button */}
@@ -343,6 +557,9 @@ export default function Home() {
         </div>
 
 
+        
+
+
         {/* Scroll Indicator */}
         <div className="absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-3">
 
@@ -358,7 +575,7 @@ export default function Home() {
 
 
       {/* =========================
-          FEATURED FILMS
+          FEATURED WEDDING FILMS
       ========================== */}
 
       <section
@@ -373,26 +590,25 @@ export default function Home() {
             SELECTED STORIES
           </p>
 
-
           {/* Section Heading */}
           <div className="mt-5 flex flex-col justify-between gap-6 md:flex-row md:items-end">
 
             <h2
-              className="text-4xl font-light tracking-wide md:text-6xl"
+              className="text-4xl font-light tracking-wide md:text-4xl"
               style={{
-                fontFamily: "Georgia, 'Times New Roman', serif",
+                fontFamily:
+                  "Georgia, 'Times New Roman', serif",
               }}
             >
-              Our Films
+              FEATURED WEDDING FILMS
             </h2>
 
-            <p className="max-w-sm text-sm leading-7 text-white/40">
+            <p className="mx-auto mt-10 max-w-2xl text-sm leading-8 text-white/40 md:text-base">
               A collection of stories, emotions and moments
               captured through our lens.
             </p>
 
           </div>
-
 
           {/* Film Grid */}
           {featuredLoading ? (
@@ -429,10 +645,11 @@ export default function Home() {
                   {/* Film Video / Preview */}
                   <div className="relative aspect-video overflow-hidden bg-neutral-900">
 
+                    {/* Vimeo */}
                     {film.vimeo_embed_url ? (
 
                       <iframe
-                        src={getFeaturedVimeoUrl(
+                        src={getVimeoFeaturedUrl(
                           film.vimeo_embed_url
                         )}
                         title={film.title}
@@ -442,8 +659,23 @@ export default function Home() {
                         allowFullScreen
                       />
 
+                    ) : film.youtube_embed_url ? (
+
+                      /* YouTube */
+                      <iframe
+                        src={getYouTubeFeaturedUrl(
+                          film.youtube_embed_url
+                        )}
+                        title={film.title}
+                        className="absolute inset-0 h-full w-full"
+                        frameBorder="0"
+                        allow="autoplay; encrypted-media; picture-in-picture"
+                        allowFullScreen
+                      />
+
                     ) : film.thumbnail_url ? (
 
+                      /* Thumbnail */
                       <img
                         src={film.thumbnail_url}
                         alt={film.title}
@@ -452,6 +684,7 @@ export default function Home() {
 
                     ) : (
 
+                      /* Empty Preview */
                       <div className="flex h-full items-center justify-center">
 
                         <div className="text-center">
@@ -467,7 +700,6 @@ export default function Home() {
                     )}
 
                   </div>
-
 
                   {/* Film Information */}
                   <div className="mt-5">
@@ -510,11 +742,11 @@ export default function Home() {
             OUR PHILOSOPHY
           </p>
 
-
           <h2
             className="mt-8 text-4xl font-light leading-relaxed tracking-wide md:text-6xl"
             style={{
-              fontFamily: "Georgia, 'Times New Roman', serif",
+              fontFamily:
+                "Georgia, 'Times New Roman', serif",
             }}
           >
             Every love story deserves
@@ -522,11 +754,10 @@ export default function Home() {
             its own chapter.
           </h2>
 
-
           <p className="mx-auto mt-10 max-w-2xl text-sm leading-8 text-white/40 md:text-base">
-            We create cinematic wedding films that allow you
-            to return to the laughter, the tears, the people
-            and the moments that made your day unforgettable.
+            Your wedding day becomes a collection of moments —
+the laughter, the tears, the embraces and the people
+who made it unforgettable. We preserve them as your story.
           </p>
 
         </div>
@@ -547,11 +778,11 @@ export default function Home() {
           YOUR STORY AWAITS
         </p>
 
-
         <h2
           className="mt-6 text-5xl font-light tracking-wide md:text-7xl"
           style={{
-            fontFamily: "Georgia, 'Times New Roman', serif",
+            fontFamily:
+              "Georgia, 'Times New Roman', serif",
           }}
         >
           Let's create
@@ -559,12 +790,10 @@ export default function Home() {
           your chapter.
         </h2>
 
-
         <p className="mx-auto mt-8 max-w-xl text-sm leading-7 text-white/40">
           Tell us about your wedding, your vision and the
           moments you want to remember forever.
         </p>
-
 
         {/* Appointment Button */}
         <a
@@ -593,22 +822,20 @@ export default function Home() {
             PRIVATE COLLECTION
           </p>
 
-
           <h2
             className="mt-6 text-4xl font-light tracking-wide md:text-5xl"
             style={{
-              fontFamily: "Georgia, 'Times New Roman', serif",
+              fontFamily:
+                "Georgia, 'Times New Roman', serif",
             }}
           >
             Your chapter awaits.
           </h2>
 
-
           <p className="mx-auto mt-6 max-w-md text-sm leading-7 text-white/40">
             Enter the access code provided by Eternal Chapter
             to view your private wedding films.
           </p>
-
 
           {/* Access Input */}
           <div className="mt-10">
@@ -631,14 +858,12 @@ export default function Home() {
 
           </div>
 
-
           {/* Error */}
           {error && (
             <p className="mt-4 text-xs text-white/50">
               {error}
             </p>
           )}
-
 
           {/* Access Button */}
           <button
@@ -673,16 +898,14 @@ export default function Home() {
             className="h-14 w-auto object-contain opacity-80"
           />
 
-
-          {/* Copyright */}
+          {/* Since */}
           <p className="text-[9px] tracking-[0.25em] text-white/30">
-            © {new Date().getFullYear()} ETERNAL CHAPTER
+            SINCE 2018 · ETERNAL CHAPTER
           </p>
-
 
           {/* Description */}
           <p className="text-[9px] tracking-[0.25em] text-white/30">
-            WEDDING CINEMATOGRAPHY
+            YOUR STORY, BEAUTIFULLY TOLD
           </p>
 
         </div>
