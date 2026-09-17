@@ -275,9 +275,6 @@ export default function Home() {
       TOGGLE HERO SOUND
   ========================== */
 
-  const toggleHeroSound = () => {
-    setHeroMuted((current) => !current);
-  };
 
   return (
     <main className="min-h-screen bg-black text-white">
