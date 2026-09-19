@@ -897,7 +897,7 @@ who made it unforgettable. We preserve them as your story.
 
           {/* Since */}
           <p className="text-[9px] tracking-[0.25em] text-white/30">
-            SINCE 2018 · ETERNAL CHAPTER
+            SINCE 2018 · ETERNAL CHAPTER WEDDING FILMS
           </p>
 
           {/* Description */}

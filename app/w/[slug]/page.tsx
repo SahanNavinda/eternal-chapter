@@ -12,12 +12,52 @@ type Video = {
   title: string;
   category: string;
   description: string | null;
-  google_drive_url: string;
+  google_drive_url: string | null;
   vimeo_embed_url: string | null;
+  youtube_embed_url: string | null;
   thumbnail_url: string | null;
   download_enabled: boolean;
+  is_featured: boolean;
   display_order: number;
 };
+
+function getYouTubeVideoId(url: string) {
+  try {
+    const parsedUrl = new URL(url);
+
+    if (parsedUrl.hostname.includes("youtu.be")) {
+      return parsedUrl.pathname.replace("/", "").split("/")[0];
+    }
+
+    if (parsedUrl.hostname.includes("youtube.com")) {
+      if (parsedUrl.pathname === "/watch") {
+        return parsedUrl.searchParams.get("v");
+      }
+
+      if (parsedUrl.pathname.startsWith("/embed/")) {
+        return parsedUrl.pathname.split("/embed/")[1]?.split("/")[0] || null;
+      }
+
+      if (parsedUrl.pathname.startsWith("/shorts/")) {
+        return parsedUrl.pathname.split("/shorts/")[1]?.split("/")[0] || null;
+      }
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function getYouTubeEmbedUrl(url: string) {
+  const videoId = getYouTubeVideoId(url);
+
+  if (!videoId) {
+    return url;
+  }
+
+  return `https://www.youtube.com/embed/${videoId}?autoplay=0&mute=0&controls=1&playsinline=1&rel=0&modestbranding=1`;
+}
 
 export default async function WeddingPage({
   params,
@@ -59,11 +99,11 @@ export default async function WeddingPage({
   const videos = (videosData ?? []) as Video[];
 
   // Find Highlight Film
- const highlightFilm = videos.find(
-  (video) =>
-    video.category.toLowerCase().includes("highlight") ||
-    video.title.toLowerCase().includes("highlight")
-);
+  const highlightFilm = videos.find(
+    (video) =>
+      video.category.toLowerCase().includes("highlight") ||
+      video.title.toLowerCase().includes("highlight")
+  );
 
   // Everything except Highlight Film
   const otherFilms = videos.filter(
@@ -95,7 +135,7 @@ export default async function WeddingPage({
             <img
               src="/logo.png"
               alt="Eternal Chapter"
-              className="h-12 w-auto object-contain md:h-14"
+              className="h-12 w-auto object-contain md:h-30"
             />
           </a>
 
@@ -196,21 +236,55 @@ export default async function WeddingPage({
             </div>
 
 
-            {/* VIMEO PLAYER */}
+            {/* VIDEO PLAYER */}
 
-                    {highlightFilm.vimeo_embed_url ? (
-            <div className="relative mx-auto mt-16 aspect-video max-w-6xl overflow-hidden bg-neutral-900 shadow-2xl">
+            {highlightFilm.vimeo_embed_url ? (
+              <div className="relative mx-auto mt-16 aspect-video max-w-6xl overflow-hidden bg-neutral-900 shadow-2xl">
+
                 <iframe
-                src={highlightFilm.vimeo_embed_url}
-                title={highlightFilm.title}
-                className="absolute inset-0 h-full w-full"
-                frameBorder="0"
-                allow="autoplay; fullscreen; picture-in-picture"
-                allowFullScreen
+                  src={highlightFilm.vimeo_embed_url}
+                  title={highlightFilm.title}
+                  className="absolute inset-0 h-full w-full"
+                  frameBorder="0"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  allowFullScreen
                 />
-            </div>
-            ) : (
 
+              </div>
+            ) : highlightFilm.youtube_embed_url ? (
+              <div className="relative mx-auto mt-16 aspect-video max-w-6xl overflow-hidden bg-neutral-900 shadow-2xl">
+
+                <iframe
+                  src={getYouTubeEmbedUrl(
+                    highlightFilm.youtube_embed_url
+                  )}
+                  title={highlightFilm.title}
+                  className="absolute inset-0 h-full w-full"
+                  frameBorder="0"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  allowFullScreen
+                />
+
+              </div>
+            ) : highlightFilm.thumbnail_url ? (
+              <div className="relative mx-auto mt-16 aspect-video max-w-6xl overflow-hidden bg-neutral-950 shadow-2xl">
+
+                <img
+                  src={highlightFilm.thumbnail_url}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+
+                <div className="absolute inset-0 bg-black/50" />
+
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <p className="text-sm text-white/60">
+                    Your highlight film will appear here soon.
+                  </p>
+                </div>
+
+              </div>
+            ) : (
               <div className="mx-auto mt-16 flex aspect-video max-w-6xl items-center justify-center border border-white/10 bg-neutral-950">
 
                 <p className="text-sm text-white/30">
@@ -218,7 +292,6 @@ export default async function WeddingPage({
                 </p>
 
               </div>
-
             )}
 
 
@@ -226,18 +299,17 @@ export default async function WeddingPage({
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-6">
 
-        
-
-              {highlightFilm.download_enabled && (
-                <a
-                  href={highlightFilm.google_drive_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="border border-white/20 px-6 py-3 text-[10px] tracking-[0.3em] text-white/60 transition-all duration-500 hover:border-white hover:bg-white hover:text-black"
-                >
-                  DOWNLOAD FILM →
-                </a>
-              )}
+              {highlightFilm.download_enabled &&
+                highlightFilm.google_drive_url && (
+                  <a
+                    href={highlightFilm.google_drive_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="border border-white/20 px-6 py-3 text-[10px] tracking-[0.3em] text-white/60 transition-all duration-500 hover:border-white hover:bg-white hover:text-black"
+                  >
+                    DOWNLOAD FILM →
+                  </a>
+                )}
 
             </div>
 
@@ -299,17 +371,18 @@ export default async function WeddingPage({
 
                     {/* DOWNLOAD */}
 
-                    {video.download_enabled && (
-                      <a
-                        href={video.google_drive_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex w-fit items-center gap-4 border border-white/20 px-7 py-4 text-[10px] tracking-[0.3em] text-white/60 transition-all duration-500 hover:border-white hover:bg-white hover:text-black"
-                      >
-                        DOWNLOAD FILM
-                        <span>↓</span>
-                      </a>
-                    )}
+                    {video.download_enabled &&
+                      video.google_drive_url && (
+                        <a
+                          href={video.google_drive_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex w-fit items-center gap-4 border border-white/20 px-7 py-4 text-[10px] tracking-[0.3em] text-white/60 transition-all duration-500 hover:border-white hover:bg-white hover:text-black"
+                        >
+                          DOWNLOAD FILM
+                          <span>↓</span>
+                        </a>
+                      )}
 
                   </div>
 
@@ -331,15 +404,15 @@ export default async function WeddingPage({
         <img
           src="/logo.png"
           alt="Eternal Chapter"
-          className="mx-auto h-16 w-auto object-contain opacity-80"
+          className="mx-auto h-30 w-auto object-contain opacity-80"
         />
 
         <p className="mt-8 text-[10px] tracking-[0.4em] text-white/30">
-          WEDDING CINEMATOGRAPHY
+          ETERNAL CHAPTER WEDDING FILMS
         </p>
 
         <p className="mt-3 text-sm text-white/40">
-          Eternal Chapter
+
         </p>
 
       </section>

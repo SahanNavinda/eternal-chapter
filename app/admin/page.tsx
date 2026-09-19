@@ -120,6 +120,14 @@ export default function AdminDashboard() {
             >
               VIEW WEBSITE →
             </a>
+              <button
+                type="button"
+                onClick={() => router.push("/admin/settings")}
+                className="text-[9px] tracking-[0.3em] text-white/40 transition hover:text-white"
+              >
+                SETTINGS
+              </button>
+
 
             <button
               onClick={handleLogout}

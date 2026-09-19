@@ -72,6 +72,8 @@ export default function ManageWeddingPage() {
 
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
 
   useEffect(() => {
     const loadWedding = async () => {
@@ -191,11 +193,6 @@ export default function ManageWeddingPage() {
       return;
     }
 
-    if (!googleDriveUrl.trim()) {
-      setError("Please enter the Google Drive download URL.");
-      return;
-    }
-
     if (filmCategory === "Custom" && !customCategory.trim()) {
       setError("Please enter a custom category.");
       return;
@@ -219,13 +216,18 @@ export default function ManageWeddingPage() {
         vimeo_embed_url: vimeoUrl.trim() || null,
         youtube_embed_url: youtubeUrl.trim() || null,
 
-        google_drive_url: googleDriveUrl.trim(),
+        google_drive_url: googleDriveUrl.trim() || null,
         thumbnail_url: thumbnailUrl.trim() || null,
 
         download_enabled: downloadEnabled,
         is_featured: isFeatured,
 
-        display_order: videos.length + 1,
+        display_order:
+          videos.length > 0
+            ? Math.max(
+                ...videos.map((video) => video.display_order)
+              ) + 1
+            : 1,
       })
       .select()
       .single();
@@ -255,37 +257,138 @@ export default function ManageWeddingPage() {
     setAddingFilm(false);
   };
 
-  const handleDeleteFilm = async (videoId: string) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this film?"
-    );
+const handleDeleteFilm = async (videoId: string) => {
+  const confirmed = window.confirm(
+    "Are you sure you want to delete this film?"
+  );
 
-    if (!confirmed) return;
+  if (!confirmed) return;
 
-    const { error } = await supabase
+  setError("");
+
+  const { error } = await supabase
+    .from("videos")
+    .delete()
+    .eq("id", videoId);
+
+  if (error) {
+    console.error("Video deletion error:", error);
+    setError(error.message);
+    return;
+  }
+
+  const remainingVideos = videos
+    .filter((video) => video.id !== videoId)
+    .map((video, index) => ({
+      ...video,
+      display_order: index + 1,
+    }));
+
+  for (const video of remainingVideos) {
+    const { error: updateError } = await supabase
       .from("videos")
-      .delete()
-      .eq("id", videoId);
+      .update({
+        display_order: video.display_order,
+      })
+      .eq("id", video.id);
 
-    if (error) {
-      console.error("Video deletion error:", error);
-      setError(error.message);
+    if (updateError) {
+      console.error(
+        "Video reorder after deletion error:",
+        updateError
+      );
+      setError(updateError.message);
       return;
     }
+  }
 
-    setVideos((current) =>
-      current.filter((video) => video.id !== videoId)
+  setVideos(remainingVideos);
+};
+
+ const moveFilm = async (
+  videoId: string,
+  direction: "up" | "down"
+) => {
+  const currentIndex = videos.findIndex(
+    (video) => video.id === videoId
+  );
+
+  if (currentIndex === -1) return;
+
+  const targetIndex =
+    direction === "up"
+      ? currentIndex - 1
+      : currentIndex + 1;
+
+  if (targetIndex < 0 || targetIndex >= videos.length) {
+    return;
+  }
+
+  const currentVideo = videos[currentIndex];
+  const targetVideo = videos[targetIndex];
+
+  const { error } = await supabase
+    .from("videos")
+    .update({
+      display_order: targetVideo.display_order,
+    })
+    .eq("id", currentVideo.id);
+
+  if (error) {
+    console.error("Film reorder error:", error);
+    setError(error.message);
+    return;
+  }
+
+  const { error: targetError } = await supabase
+    .from("videos")
+    .update({
+      display_order: currentVideo.display_order,
+    })
+    .eq("id", targetVideo.id);
+
+  if (targetError) {
+    console.error(
+      "Film reorder target error:",
+      targetError
     );
-  };
+    setError(targetError.message);
+    return;
+  }
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch (error) {
-      console.error("Copy failed:", error);
+  const reordered = [...videos];
+  reordered[currentIndex] = targetVideo;
+  reordered[targetIndex] = currentVideo;
+
+  setVideos(reordered);
+ };
+
+ const copyToClipboard = async (
+  text: string,
+  type: "link" | "code"
+) => {
+  try {
+    await navigator.clipboard.writeText(text);
+
+    if (type === "link") {
+      setCopiedLink(true);
+
+      setTimeout(() => {
+        setCopiedLink(false);
+      }, 2000);
     }
-  };
 
+    if (type === "code") {
+      setCopiedCode(true);
+
+      setTimeout(() => {
+        setCopiedCode(false);
+      }, 2000);
+    }
+  } catch (error) {
+    console.error("Copy failed:", error);
+  }
+};
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-black text-white">
@@ -421,11 +524,11 @@ export default function ManageWeddingPage() {
                   <button
                     type="button"
                     onClick={() =>
-                      copyToClipboard(clientLink)
+                      copyToClipboard(clientLink, "link")
                     }
                     className="border border-white/20 px-4 py-2 text-[9px] tracking-[0.2em] text-white/50 transition hover:border-white hover:text-white"
                   >
-                    COPY LINK
+                    {copiedLink ? "COPIED ✓" : "COPY LINK"}
                   </button>
 
                   <a
@@ -452,11 +555,11 @@ export default function ManageWeddingPage() {
                 <button
                   type="button"
                   onClick={() =>
-                    copyToClipboard(wedding.access_code)
+                    copyToClipboard(wedding.access_code, "code")
                   }
                   className="mt-5 border border-white/20 px-4 py-2 text-[9px] tracking-[0.2em] text-white/50 transition hover:border-white hover:text-white"
                 >
-                  COPY CODE
+                  {copiedCode ? "COPIED ✓" : "COPY CODE"}
                 </button>
               </div>
             </div>
@@ -813,8 +916,8 @@ export default function ManageWeddingPage() {
                     />
 
                     <p className="mt-2 text-xs leading-5 text-white/30">
-                      Required. This is where the client will
-                      download the film.
+                      Optional. Add this if the client should be able
+                      to download the film.
                     </p>
                   </div>
 
@@ -1013,7 +1116,31 @@ export default function ManageWeddingPage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-5">
+                        <div className="flex flex-wrap items-center gap-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                moveFilm(video.id, "up")
+                              }
+                              disabled={index === 0}
+                              className="border border-white/10 px-3 py-2 text-[9px] text-white/40 transition hover:border-white/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-20"
+                            >
+                              ↑
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                moveFilm(video.id, "down")
+                              }
+                              disabled={index === videos.length - 1}
+                              className="border border-white/10 px-3 py-2 text-[9px] text-white/40 transition hover:border-white/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-20"
+                            >
+                              ↓
+                            </button>
+                          </div>
+
                           <button
                             type="button"
                             onClick={() =>
