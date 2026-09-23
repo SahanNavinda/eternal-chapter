@@ -114,12 +114,20 @@ export default function AdminDashboard() {
           </div>
 
           <div className="flex items-center gap-6">
+            <button
+  type="button"
+  onClick={() => router.push("/admin/reviews")}
+  className="text-[9px] tracking-[0.3em] text-white/40 transition hover:text-white"
+>
+  REVIEWS
+</button>
             <a
               href="/"
               className="text-[9px] tracking-[0.3em] text-white/40 transition hover:text-white"
             >
               VIEW WEBSITE →
             </a>
+            
               <button
                 type="button"
                 onClick={() => router.push("/admin/settings")}

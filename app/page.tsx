@@ -18,6 +18,16 @@ type FeaturedFilm = {
   display_order: number;
 };
 
+type Review = {
+  id: string;
+  client_name: string;
+  location: string | null;
+  review_text: string;
+  client_image_url: string | null;
+  is_active: boolean;
+  display_order: number;
+};
+
 export default function Home() {
   const router = useRouter();
 
@@ -33,6 +43,10 @@ export default function Home() {
 
   const [featuredFilms, setFeaturedFilms] = useState<FeaturedFilm[]>([]);
   const [featuredLoading, setFeaturedLoading] = useState(true);
+
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [currentReview, setCurrentReview] = useState(0);
 
   /* =========================
       LOAD HOMEPAGE SETTINGS
@@ -90,6 +104,48 @@ export default function Home() {
 
     loadFeaturedFilms();
   }, []);
+
+  /* =========================
+      LOAD REVIEWS
+  ========================== */
+
+  useEffect(() => {
+    const loadReviews = async () => {
+      const { data, error } = await supabase
+        .from("reviews")
+        .select(
+          "id, client_name, location, review_text, client_image_url, is_active, display_order"
+        )
+        .eq("is_active", true)
+        .order("display_order", { ascending: true })
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error(
+          "Could not load reviews:",
+          error
+        );
+
+        setReviewsLoading(false);
+        return;
+      }
+
+      setReviews((data || []) as Review[]);
+      setReviewsLoading(false);
+    };
+
+    loadReviews();
+  }, []);
+
+  useEffect(() => {
+    if (reviews.length === 0) {
+      return;
+    }
+
+    if (currentReview >= reviews.length) {
+      setCurrentReview(0);
+    }
+  }, [reviews.length, currentReview]);
 
   /* =========================
       CLIENT ACCESS
@@ -723,6 +779,117 @@ export default function Home() {
 
       </section>
 
+
+      {/* =========================
+          TESTIMONIALS / REVIEWS
+      ========================== */}
+
+      {!reviewsLoading && reviews.length > 0 && (
+        <section className="border-t border-white/10 bg-black px-6 py-24 md:px-16 md:py-32">
+          <div className="mx-auto max-w-5xl text-center">
+            <p className="text-[10px] tracking-[0.4em] text-white/40">
+              TESTIMONIALS AND REVIEWS
+            </p>
+
+            <h2
+              className="mt-5 text-4xl font-light tracking-wide md:text-5xl"
+              style={{
+                fontFamily:
+                  "Georgia, 'Times New Roman', serif",
+              }}
+            >
+              Hear it from the People
+            </h2>
+
+            <div className="mt-16">
+              {reviews[currentReview] && (
+                <div className="flex flex-col items-center">
+                  {reviews[currentReview].client_image_url ? (
+                    <img
+                      src={reviews[currentReview].client_image_url}
+                      alt={reviews[currentReview].client_name}
+                      className="h-24 w-24 rounded-full object-cover md:h-28 md:w-28"
+                    />
+                  ) : (
+                    <div className="flex h-24 w-24 items-center justify-center rounded-full border border-white/10 bg-white/[0.02] text-[9px] tracking-[0.2em] text-white/20 md:h-28 md:w-28">
+                      CLIENT
+                    </div>
+                  )}
+
+                  <h3 className="mt-8 text-xl font-light tracking-wide md:text-2xl">
+                    {reviews[currentReview].client_name}
+                  </h3>
+
+                  {reviews[currentReview].location && (
+                    <p className="mt-2 text-[9px] tracking-[0.25em] text-white/30">
+                      {reviews[currentReview].location?.toUpperCase()}
+                    </p>
+                  )}
+
+                  <p className="mx-auto mt-10 max-w-3xl text-sm leading-8 text-white/50 md:text-base md:leading-9">
+                    “{reviews[currentReview].review_text}”
+                  </p>
+
+                  <div className="mt-12 flex w-full items-center justify-center gap-6">
+                    <button
+                      type="button"
+                      aria-label="Previous review"
+                      onClick={() =>
+                        setCurrentReview((current) =>
+                          current === 0
+                            ? reviews.length - 1
+                            : current - 1
+                        )
+                      }
+                      className="flex h-10 w-10 items-center justify-center border border-white/10 text-white/40 transition hover:border-white/40 hover:text-white"
+                    >
+                      ←
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      {reviews.map((review, index) => (
+                        <button
+                          key={review.id}
+                          type="button"
+                          aria-label={`Go to review ${index + 1}`}
+                          onClick={() => setCurrentReview(index)}
+                          className={`h-1.5 rounded-full transition-all duration-300 ${
+                            index === currentReview
+                              ? "w-7 bg-white/80"
+                              : "w-1.5 bg-white/20 hover:bg-white/40"
+                          }`}
+                        />
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      aria-label="Next review"
+                      onClick={() =>
+                        setCurrentReview((current) =>
+                          current === reviews.length - 1
+                            ? 0
+                            : current + 1
+                        )
+                      }
+                      className="flex h-10 w-10 items-center justify-center border border-white/10 text-white/40 transition hover:border-white/40 hover:text-white"
+                    >
+                      →
+                    </button>
+                  </div>
+
+                  <a
+                    href="/testimonials"
+                    className="mt-10 inline-flex border border-white/20 px-6 py-3 text-[9px] tracking-[0.3em] text-white/50 transition hover:border-white/60 hover:text-white"
+                  >
+                    READ FULL REVIEWS →
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* =========================
           PHILOSOPHY / ABOUT
