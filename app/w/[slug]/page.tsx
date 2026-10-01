@@ -35,11 +35,15 @@ function getYouTubeVideoId(url: string) {
       }
 
       if (parsedUrl.pathname.startsWith("/embed/")) {
-        return parsedUrl.pathname.split("/embed/")[1]?.split("/")[0] || null;
+        return (
+          parsedUrl.pathname.split("/embed/")[1]?.split("/")[0] || null
+        );
       }
 
       if (parsedUrl.pathname.startsWith("/shorts/")) {
-        return parsedUrl.pathname.split("/shorts/")[1]?.split("/")[0] || null;
+        return (
+          parsedUrl.pathname.split("/shorts/")[1]?.split("/")[0] || null
+        );
       }
     }
 
@@ -56,7 +60,69 @@ function getYouTubeEmbedUrl(url: string) {
     return url;
   }
 
-  return `https://www.youtube.com/embed/${videoId}?autoplay=0&mute=0&controls=1&playsinline=1&rel=0&modestbranding=1`;
+  return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=1&playsinline=1&rel=0&modestbranding=1`;
+}
+
+function getYouTubeBackgroundUrl(url: string) {
+  const videoId = getYouTubeVideoId(url);
+
+  if (!videoId) {
+    return url;
+  }
+
+  return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&playsinline=1&rel=0&modestbranding=1`;
+}
+
+function getVimeoBackgroundUrl(url: string) {
+  try {
+    let embedUrl = url.trim();
+
+    if (
+      embedUrl.includes("vimeo.com/") &&
+      !embedUrl.includes("player.vimeo.com")
+    ) {
+      const parts = embedUrl.split("vimeo.com/")[1];
+
+      const videoId = parts
+        .split("?")[0]
+        .split("#")[0]
+        .split("/")[0];
+
+      embedUrl = `https://player.vimeo.com/video/${videoId}`;
+    }
+
+    const separator = embedUrl.includes("?") ? "&" : "?";
+
+    return `${embedUrl}${separator}autoplay=1&muted=1&loop=1&autopause=0&controls=0&title=0&byline=0&portrait=0&playsinline=1`;
+  } catch {
+    return url;
+  }
+}
+
+function isDirectVideo(url: string) {
+  const lowerUrl = url.toLowerCase();
+
+  return (
+    lowerUrl.includes(".mp4") ||
+    lowerUrl.includes(".webm") ||
+    lowerUrl.includes(".ogg") ||
+    lowerUrl.includes(".mov") ||
+    lowerUrl.includes(".m4v")
+  );
+}
+
+function isVimeoUrl(url: string) {
+  return (
+    url.includes("vimeo.com/") ||
+    url.includes("player.vimeo.com/")
+  );
+}
+
+function isYouTubeUrl(url: string) {
+  return (
+    url.includes("youtube.com/") ||
+    url.includes("youtu.be/")
+  );
 }
 
 export default async function WeddingPage({
@@ -121,6 +187,8 @@ export default async function WeddingPage({
         .toUpperCase()
     : "";
 
+  const backgroundMedia = wedding.cover_image?.trim() || "";
+
   return (
     <main className="min-h-screen bg-black text-white">
 
@@ -150,22 +218,52 @@ export default async function WeddingPage({
       {/* HERO */}
       <section className="relative flex min-h-screen items-center justify-center overflow-hidden">
 
-        <div className="absolute inset-0">
+        {/* BACKGROUND MEDIA */}
+        <div className="absolute inset-0 bg-black">
 
-          {wedding.cover_image ? (
-            <img
-              src={wedding.cover_image}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          ) : (
+          {!backgroundMedia ? (
             <img
               src="/hero.jpg"
               alt=""
               className="h-full w-full object-cover"
             />
+          ) : isVimeoUrl(backgroundMedia) ? (
+            <iframe
+              src={getVimeoBackgroundUrl(backgroundMedia)}
+              title="Wedding background video"
+              className="pointer-events-none absolute left-1/2 top-1/2 h-[56.25vw] min-h-[100vh] w-[177.78vh] min-w-full -translate-x-1/2 -translate-y-1/2"
+              frameBorder="0"
+              allow="autoplay; fullscreen; picture-in-picture"
+              aria-hidden="true"
+            />
+          ) : isYouTubeUrl(backgroundMedia) ? (
+            <iframe
+              src={getYouTubeBackgroundUrl(backgroundMedia)}
+              title="Wedding background video"
+              className="pointer-events-none absolute left-1/2 top-1/2 h-[56.25vw] min-h-[100vh] w-[177.78vh] min-w-full -translate-x-1/2 -translate-y-1/2"
+              frameBorder="0"
+              allow="autoplay; fullscreen; picture-in-picture"
+              aria-hidden="true"
+            />
+          ) : isDirectVideo(backgroundMedia) ? (
+            <video
+              src={backgroundMedia}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <img
+              src={backgroundMedia}
+              alt=""
+              className="h-full w-full object-cover"
+            />
           )}
 
+          {/* DARK CINEMATIC OVERLAY */}
           <div className="absolute inset-0 bg-black/60" />
 
           <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black to-transparent" />
@@ -173,6 +271,7 @@ export default async function WeddingPage({
         </div>
 
 
+        {/* HERO CONTENT */}
         <div className="relative z-10 px-6 text-center">
 
           <p className="text-[10px] tracking-[0.5em] text-white/50">
