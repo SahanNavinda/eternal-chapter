@@ -27,6 +27,50 @@ type Review = {
   is_active: boolean;
   display_order: number;
 };
+const getCountryFlag = (location: string | null) => {
+  if (!location) return null;
+
+  const country = location.split(",").pop()?.trim().toLowerCase() || "";
+
+  const flags: Record<string, { code: string; name: string }> = {
+    "sri lanka": { code: "LK", name: "Sri Lanka" },
+    lk: { code: "LK", name: "Sri Lanka" },
+    india: { code: "IN", name: "India" },
+    in: { code: "IN", name: "India" },
+    maldives: { code: "MV", name: "Maldives" },
+    mv: { code: "MV", name: "Maldives" },
+    nepal: { code: "NP", name: "Nepal" },
+    np: { code: "NP", name: "Nepal" },
+    bangladesh: { code: "BD", name: "Bangladesh" },
+    bd: { code: "BD", name: "Bangladesh" },
+    pakistan: { code: "PK", name: "Pakistan" },
+    pk: { code: "PK", name: "Pakistan" },
+    australia: { code: "AU", name: "Australia" },
+    au: { code: "AU", name: "Australia" },
+    france: { code: "FR", name: "France" },
+    fr: { code: "FR", name: "France" },
+    germany: { code: "DE", name: "Germany" },
+    de: { code: "DE", name: "Germany" },
+    italy: { code: "IT", name: "Italy" },
+    it: { code: "IT", name: "Italy" },
+    singapore: { code: "SG", name: "Singapore" },
+    sg: { code: "SG", name: "Singapore" },
+    "united kingdom": { code: "GB", name: "United Kingdom" },
+    uk: { code: "GB", name: "United Kingdom" },
+    "united states": { code: "US", name: "United States" },
+    usa: { code: "US", name: "United States" },
+    canada: { code: "CA", name: "Canada" },
+    ca: { code: "CA", name: "Canada" },
+    "united arab emirates": { code: "AE", name: "United Arab Emirates" },
+    uae: { code: "AE", name: "United Arab Emirates" },
+  };
+
+  const countryData = flags[country];
+
+  if (!countryData) return null;
+
+  return countryData;
+};
 
 export default function Home() {
   const router = useRouter();
@@ -820,11 +864,22 @@ export default function Home() {
                     {reviews[currentReview].client_name}
                   </h3>
 
-                  {reviews[currentReview].location && (
-                    <p className="mt-2 text-[9px] tracking-[0.25em] text-white/30">
-                      {reviews[currentReview].location?.toUpperCase()}
-                    </p>
-                  )}
+                 {reviews[currentReview].location && (
+  <div className="mt-3 flex items-center justify-center gap-3">
+    <span className="text-[10px] font-medium tracking-[0.3em] text-white/60">
+      {reviews[currentReview].location?.toUpperCase()}
+    </span>
+
+    {getCountryFlag(reviews[currentReview].location) && (
+      <span
+        className="inline-flex h-5 w-7 items-center justify-center overflow-hidden rounded-sm border border-white/20 bg-white/10 text-[12px] font-semibold text-white shadow-lg"
+        title={getCountryFlag(reviews[currentReview].location)?.name}
+      >
+        {getCountryFlag(reviews[currentReview].location)?.code}
+      </span>
+    )}
+  </div>
+)}
 
                   <p className="mx-auto mt-10 max-w-3xl text-sm leading-8 text-white/50 md:text-base md:leading-9">
                     “{reviews[currentReview].review_text}”
