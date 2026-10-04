@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
+
 type FeaturedFilm = {
   id: string;
   wedding_id: string;
@@ -82,6 +83,7 @@ export default function Home() {
   const [heroVideoUrl, setHeroVideoUrl] = useState<string | null>(null);
   const [heroPosterUrl, setHeroPosterUrl] = useState("/hero.jpg");
   const [heroLoading, setHeroLoading] = useState(true);
+  
 
   
 
@@ -91,7 +93,11 @@ export default function Home() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [currentReview, setCurrentReview] = useState(0);
-
+  const [activeFeaturedFilm, setActiveFeaturedFilm] = useState<string | null>(null);
+  const [scrollY, setScrollY] = useState(0);
+  const [reviewsSectionTop, setReviewsSectionTop] = useState(0);
+  const [aboutSectionTop, setAboutSectionTop] = useState(0);
+  const [contactSectionTop, setContactSectionTop] = useState(0);
   /* =========================
       LOAD HOMEPAGE SETTINGS
   ========================== */
@@ -121,7 +127,32 @@ export default function Home() {
 
     loadHeroSettings();
   }, []);
+useEffect(() => {
+  const updateSectionPositions = () => {
+    const about = document.getElementById("about");
+    const contact = document.getElementById("contact");
 
+    if (about) {
+      setAboutSectionTop(
+        about.getBoundingClientRect().top + window.scrollY
+      );
+    }
+
+    if (contact) {
+      setContactSectionTop(
+        contact.getBoundingClientRect().top + window.scrollY
+      );
+    }
+  };
+
+  updateSectionPositions();
+
+  window.addEventListener("resize", updateSectionPositions);
+
+  return () => {
+    window.removeEventListener("resize", updateSectionPositions);
+  };
+}, []);
   /* =========================
       LOAD FEATURED FILMS
   ========================== */
@@ -191,6 +222,43 @@ export default function Home() {
     }
   }, [reviews.length, currentReview]);
 
+useEffect(() => {
+  let ticking = false;
+
+  const handleScroll = () => {
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        setScrollY(window.scrollY);
+        ticking = false;
+      });
+
+      ticking = true;
+    }
+  };
+
+  window.addEventListener("scroll", handleScroll, { passive: true });
+
+  return () => {
+    window.removeEventListener("scroll", handleScroll);
+  };
+}, []);
+<section
+  id="testimonials-section"
+  className="border-t border-white/10 bg-black px-6 py-24 md:px-16 md:py-32"
+  style={{
+  opacity: Math.min(
+    1,
+    Math.max(
+      0,
+      (scrollY - reviewsSectionTop + 700) / 500
+    )
+  ),
+  transform: `translateY(${Math.max(
+    0,
+    60 - (scrollY - reviewsSectionTop + 700) * 0.08
+  )}px)`,
+}}
+></section>
   /* =========================
       CLIENT ACCESS
   ========================== */
@@ -256,6 +324,19 @@ export default function Home() {
       return null;
     }
   };
+  const getVimeoVideoId = (url: string) => {
+  try {
+    const value = url.trim();
+
+    const match = value.match(
+      /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)(\d+)/
+    );
+
+    return match?.[1] || null;
+  } catch {
+    return null;
+  }
+};
 
   /* =========================
       YOUTUBE HERO URL
@@ -280,15 +361,15 @@ export default function Home() {
       YOUTUBE FEATURED URL
   ========================== */
 
-  const getYouTubeFeaturedUrl = (url: string) => {
-    const videoId = getYouTubeVideoId(url);
+const getYouTubeFeaturedUrl = (url: string) => {
+  const videoId = getYouTubeVideoId(url);
 
-    if (!videoId) {
-      return url;
-    }
+  if (!videoId) {
+    return url;
+  }
 
-    return `https://www.youtube.com/embed/${videoId}?autoplay=0&mute=0&controls=1&playsinline=1&rel=0&modestbranding=1`;
-  };
+  return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&controls=0&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0`;
+};
 
   /* =========================
       VIMEO HERO URL
@@ -331,33 +412,33 @@ export default function Home() {
       VIMEO FEATURED URL
   ========================== */
 
-  const getVimeoFeaturedUrl = (url: string) => {
-    try {
-      let embedUrl = url.trim();
+ const getVimeoFeaturedUrl = (url: string) => {
+  try {
+    let embedUrl = url.trim();
 
-      if (
-        embedUrl.includes("vimeo.com/") &&
-        !embedUrl.includes("player.vimeo.com")
-      ) {
-        const parts = embedUrl.split("vimeo.com/")[1];
+    if (
+      embedUrl.includes("vimeo.com/") &&
+      !embedUrl.includes("player.vimeo.com")
+    ) {
+      const parts = embedUrl.split("vimeo.com/")[1];
 
-        const videoId = parts
-          .split("?")[0]
-          .split("#")[0]
-          .split("/")[0];
+      const videoId = parts
+        .split("?")[0]
+        .split("#")[0]
+        .split("/")[0];
 
-        embedUrl = `https://player.vimeo.com/video/${videoId}`;
-      }
-
-      const separator = embedUrl.includes("?")
-        ? "&"
-        : "?";
-
-      return `${embedUrl}${separator}autoplay=0&controls=1&title=0&byline=0&portrait=0`;
-    } catch {
-      return url;
+      embedUrl = `https://player.vimeo.com/video/${videoId}`;
     }
-  };
+
+    const separator = embedUrl.includes("?")
+      ? "&"
+      : "?";
+
+    return `${embedUrl}${separator}autoplay=1&muted=0&controls=1&title=0&byline=0&portrait=0`;
+  } catch {
+    return url;
+  }
+};
 
   /* =========================
       HERO VIDEO TYPE
@@ -374,6 +455,9 @@ export default function Home() {
   /* =========================
       TOGGLE HERO SOUND
   ========================== */
+  const selectedFeaturedFilm = featuredFilms.find(
+  (film) => film.id === activeFeaturedFilm
+);
 
 
   return (
@@ -676,152 +760,239 @@ export default function Home() {
       ========================== */}
 
       <section
-        id="films"
-        className="min-h-screen bg-black px-6 py-24 md:px-16 md:py-32"
+  id="films"
+  className="min-h-screen bg-black px-6 py-24 md:px-16 md:py-32"
+>
+  <div className="mx-auto max-w-7xl">
+
+  {/* Section Heading Animation */}
+<div
+  className="transform transition-all duration-300 ease-out"
+  style={{
+    opacity: Math.min(1, Math.max(0, scrollY / 250)),
+    transform: `translateY(${Math.max(0, 40 - scrollY * 0.16)}px)`,
+  }}
+>
+  {/* Section Label */}
+  <p className="text-[10px] tracking-[0.4em] text-white/40">
+    SELECTED STORIES
+  </p>
+    {/* Section Heading */}
+    <div className="mt-5 flex flex-col justify-between gap-6 md:flex-row md:items-end">
+
+      <h2
+        className="text-4xl font-light tracking-wide md:text-4xl"
+        style={{
+          fontFamily:
+            "Georgia, 'Times New Roman', serif",
+        }}
       >
+        FEATURED WEDDING FILMS
+      </h2>
 
-        <div className="mx-auto max-w-7xl">
+      <p className="mx-auto mt-10 max-w-2xl text-sm leading-8 text-white/40 md:text-base">
+        A collection of stories, emotions and moments
+        captured through our lens.
+      </p>
 
-          {/* Section Label */}
-          <p className="text-[10px] tracking-[0.4em] text-white/40">
-            SELECTED STORIES
-          </p>
+    </div>
+    </div>
 
-          {/* Section Heading */}
-          <div className="mt-5 flex flex-col justify-between gap-6 md:flex-row md:items-end">
+    {/* Film Grid */}
+    {featuredLoading ? (
 
-            <h2
-              className="text-4xl font-light tracking-wide md:text-4xl"
-              style={{
-                fontFamily:
-                  "Georgia, 'Times New Roman', serif",
-              }}
-            >
-              FEATURED WEDDING FILMS
-            </h2>
+      <div className="mt-16 flex min-h-[250px] items-center justify-center">
+        <p className="text-[10px] tracking-[0.35em] text-white/30">
+          LOADING FILMS
+        </p>
+      </div>
 
-            <p className="mx-auto mt-10 max-w-2xl text-sm leading-8 text-white/40 md:text-base">
-              A collection of stories, emotions and moments
-              captured through our lens.
-            </p>
+    ) : featuredFilms.length === 0 ? (
+
+      <div className="mt-16 border border-white/10 px-6 py-20 text-center">
+        <p className="text-[10px] tracking-[0.35em] text-white/30">
+          NEW STORIES COMING SOON
+        </p>
+      </div>
+
+    ) : (
+
+     <div className="mt-16 grid gap-10 md:grid-cols-2">
+
+        {featuredFilms.map((film) => (
+
+          <div
+  key={film.id}
+  data-film-card={film.id}
+  className="group block"
+  style={{
+    opacity: Math.min(1, Math.max(0, scrollY / 300)),
+    transform: `translateY(${Math.max(0, 50 - scrollY * 0.12)}px)`,
+    transition: "opacity 100ms linear, transform 100ms linear",
+  }}
+>
+
+            {/* Cinematic Film Preview */}
+            <div className="relative aspect-video overflow-hidden bg-neutral-900">
+
+              {/* Thumbnail */}
+             {film.thumbnail_url ? (
+  <img
+    src={film.thumbnail_url}
+    alt={film.title}
+    className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+  />
+) : film.youtube_embed_url ? (
+  <img
+    src={`https://img.youtube.com/vi/${getYouTubeVideoId(
+      film.youtube_embed_url
+    )}/maxresdefault.jpg`}
+    alt={film.title}
+    className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+  />
+) : film.vimeo_embed_url && getVimeoVideoId(film.vimeo_embed_url) ? (
+  <img
+    src={`https://vumbnail.com/${getVimeoVideoId(
+      film.vimeo_embed_url
+    )}.jpg`}
+    alt={film.title}
+    className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+    onError={(event) => {
+      event.currentTarget.style.display = "none";
+    }}
+  />
+) : (
+  <div className="absolute inset-0 bg-neutral-900" />
+)}
+
+              {/* Cinematic Dark Overlay */}
+              <div className="absolute inset-0 bg-black/20 transition-all duration-500 group-hover:bg-black/40" />
+
+              {/* Play Button */}
+              {(film.vimeo_embed_url || film.youtube_embed_url) && (
+                <button
+                  type="button"
+                  onClick={() => setActiveFeaturedFilm(film.id)}
+                  className="absolute inset-0 z-10 flex items-center justify-center"
+                  aria-label={`Play ${film.title}`}
+                >
+                  <span className="flex h-16 w-16 items-center justify-center rounded-full border border-white/60 bg-black/20 text-white backdrop-blur-sm transition-all duration-500 group-hover:scale-110 group-hover:border-white group-hover:bg-white group-hover:text-black md:h-20 md:w-20">
+                    <span className="ml-1 text-xl md:text-2xl">
+                      ▶
+                    </span>
+                  </span>
+                </button>
+              )}
+
+              {/* Category */}
+              <div className="absolute bottom-5 left-5 z-10">
+                <p className="text-[9px] tracking-[0.35em] text-white/70">
+                  {film.category.toUpperCase()}
+                </p>
+              </div>
+
+            </div>
+
+            {/* Film Information */}
+            <div className="mt-5">
+
+              <h3 className="text-lg font-light tracking-wide">
+                {film.couple_name}
+              </h3>
+
+              <p className="mt-2 text-[10px] tracking-[0.25em] text-white/40">
+                {film.title.toUpperCase()}
+              </p>
+
+            </div>
 
           </div>
 
-          {/* Film Grid */}
-          {featuredLoading ? (
+        ))}
 
-            <div className="mt-16 flex min-h-[250px] items-center justify-center">
+      </div>
 
-              <p className="text-[10px] tracking-[0.35em] text-white/30">
-                LOADING FILMS
-              </p>
+    )}
 
-            </div>
+  </div>
 
-          ) : featuredFilms.length === 0 ? (
+  {/* =========================
+      CINEMATIC VIDEO LIGHTBOX
+  ========================= */}
 
-            <div className="mt-16 border border-white/10 px-6 py-20 text-center">
+  {selectedFeaturedFilm && (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 px-4 py-8 md:px-10"
+      onClick={() => setActiveFeaturedFilm(null)}
+    >
 
-              <p className="text-[10px] tracking-[0.35em] text-white/30">
-                NEW STORIES COMING SOON
-              </p>
+      <div
+        className="relative w-full max-w-6xl"
+        onClick={(event) => event.stopPropagation()}
+      >
 
-            </div>
+        {/* Close Button */}
+        <button
+          type="button"
+          onClick={() => setActiveFeaturedFilm(null)}
+          className="absolute -right-1 -top-12 z-20 flex h-9 w-9 items-center justify-center border border-white/20 text-xl text-white/70 transition hover:border-white hover:text-white md:-right-12 md:top-0"
+          aria-label="Close video"
+        >
+          ×
+        </button>
 
-          ) : (
+        {/* Video */}
+        <div className="relative aspect-video overflow-hidden bg-black shadow-2xl">
 
-            <div className="mt-16 grid gap-10 md:grid-cols-2">
+          {selectedFeaturedFilm.vimeo_embed_url ? (
 
-              {featuredFilms.map((film) => (
+            <iframe
+              src={getVimeoFeaturedUrl(
+                selectedFeaturedFilm.vimeo_embed_url
+              )}
+              title={selectedFeaturedFilm.title}
+              className="absolute inset-0 h-full w-full"
+              frameBorder="0"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+            />
 
-                <div
-                  key={film.id}
-                  className="group block"
-                >
+          ) : selectedFeaturedFilm.youtube_embed_url ? (
 
-                  {/* Film Video / Preview */}
-                  <div className="relative aspect-video overflow-hidden bg-neutral-900">
+            <iframe
+              src={getYouTubeFeaturedUrl(
+                selectedFeaturedFilm.youtube_embed_url
+              )}
+              title={selectedFeaturedFilm.title}
+              className="absolute inset-0 h-full w-full"
+              frameBorder="0"
+              allow="autoplay; encrypted-media; picture-in-picture"
+              allowFullScreen
+            />
 
-                    {/* Vimeo */}
-                    {film.vimeo_embed_url ? (
-
-                      <iframe
-                        src={getVimeoFeaturedUrl(
-                          film.vimeo_embed_url
-                        )}
-                        title={film.title}
-                        className="absolute inset-0 h-full w-full"
-                        frameBorder="0"
-                        allow="autoplay; fullscreen; picture-in-picture"
-                        allowFullScreen
-                      />
-
-                    ) : film.youtube_embed_url ? (
-
-                      /* YouTube */
-                      <iframe
-                        src={getYouTubeFeaturedUrl(
-                          film.youtube_embed_url
-                        )}
-                        title={film.title}
-                        className="absolute inset-0 h-full w-full"
-                        frameBorder="0"
-                        allow="autoplay; encrypted-media; picture-in-picture"
-                        allowFullScreen
-                      />
-
-                    ) : film.thumbnail_url ? (
-
-                      /* Thumbnail */
-                      <img
-                        src={film.thumbnail_url}
-                        alt={film.title}
-                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
-
-                    ) : (
-
-                      /* Empty Preview */
-                      <div className="flex h-full items-center justify-center">
-
-                        <div className="text-center">
-
-                          <span className="text-[10px] tracking-[0.35em] text-white/30 transition-all duration-500 group-hover:text-white">
-                            {film.category.toUpperCase()}
-                          </span>
-
-                        </div>
-
-                      </div>
-
-                    )}
-
-                  </div>
-
-                  {/* Film Information */}
-                  <div className="mt-5">
-
-                    <h3 className="text-lg font-light tracking-wide">
-                      {film.couple_name}
-                    </h3>
-
-                    <p className="mt-2 text-[10px] tracking-[0.25em] text-white/40">
-                      {film.title.toUpperCase()}
-                    </p>
-
-                  </div>
-
-                </div>
-
-              ))}
-
-            </div>
-
-          )}
+          ) : null}
 
         </div>
 
-      </section>
+        {/* Film Information */}
+        <div className="mt-5">
+
+          <h3 className="text-lg font-light tracking-wide text-white">
+            {selectedFeaturedFilm.couple_name}
+          </h3>
+
+          <p className="mt-2 text-[9px] tracking-[0.3em] text-white/40">
+            {selectedFeaturedFilm.title.toUpperCase()}
+          </p>
+
+        </div>
+
+      </div>
+
+    </div>
+  )}
+
+</section>
 
 
       {/* =========================
@@ -829,8 +1000,39 @@ export default function Home() {
       ========================== */}
 
       {!reviewsLoading && reviews.length > 0 && (
-        <section className="border-t border-white/10 bg-black px-6 py-24 md:px-16 md:py-32">
-          <div className="mx-auto max-w-5xl text-center">
+  <section
+  id="testimonials-section"
+  className="border-t border-white/10 bg-black px-6 py-24 md:px-16 md:py-32"
+  style={{
+  opacity: Math.min(
+    1,
+    Math.max(
+      0,
+      (scrollY - reviewsSectionTop + 700) / 500
+    )
+  ),
+  transform: `translateY(${Math.max(
+    0,
+    60 - (scrollY - reviewsSectionTop + 700) * 0.08
+  )}px)`,
+}}
+>
+          <div
+  className="mx-auto max-w-5xl text-center"
+  style={{
+    opacity: Math.min(
+      1,
+      Math.max(
+        0,
+        (scrollY - 1500) / 500
+      )
+    ),
+    transform: `translateY(${Math.max(
+      0,
+      50 - (scrollY - 1500) * 0.08
+    )}px)`,
+  }}
+>
             <p className="text-[10px] tracking-[0.4em] text-white/40">
               TESTIMONIALS AND REVIEWS
             </p>
@@ -951,11 +1153,41 @@ export default function Home() {
       ========================== */}
 
       <section
-        id="about"
-        className="flex min-h-[80vh] items-center border-t border-white/10 px-6 py-24 md:px-16 md:py-32"
-      >
+  id="about"
+  className="flex min-h-[80vh] items-center border-t border-white/10 px-6 py-24 md:px-16 md:py-32"
+  style={{
+  opacity: Math.min(
+    1,
+    Math.max(
+      0,
+      (scrollY - aboutSectionTop + 600) / 500
+    )
+  ),
+  transform: `translateY(${Math.max(
+    0,
+    50 - (scrollY - aboutSectionTop + 600) * 0.1
+  )}px)`,
+  transition: "opacity 100ms linear, transform 100ms linear",
+}}
+>
 
-        <div className="mx-auto max-w-5xl text-center">
+        <div
+  className="mx-auto max-w-7xl"
+  style={{
+  opacity: Math.min(
+    1,
+    Math.max(
+      0,
+      (scrollY - aboutSectionTop + 600) / 500
+    )
+  ),
+  transform: `translateY(${Math.max(
+    0,
+    50 - (scrollY - aboutSectionTop + 600) * 0.1
+  )}px)`,
+  transition: "opacity 100ms linear, transform 100ms linear",
+}}
+>
 
           <p className="text-[10px] tracking-[0.4em] text-white/40">
             OUR PHILOSOPHY
@@ -991,6 +1223,19 @@ who made it unforgettable. We preserve them as your story.
       <section
         id="contact"
         className="border-t border-white/10 px-6 py-28 text-center md:py-40"
+        style={{
+    opacity: Math.min(
+      1,
+      Math.max(
+        0,
+        (scrollY - 2600) / 500
+      )
+    ),
+    transform: `translateY(${Math.max(
+      0,
+      50 - (scrollY - 2000) * 0.08
+    )}px)`,
+  }}
       >
 
         <p className="text-[10px] tracking-[0.4em] text-white/40">

@@ -272,13 +272,18 @@ export default async function WeddingPage({
 
 
         {/* HERO CONTENT */}
-        <div className="relative z-10 px-6 text-center">
+        <div className="cinematic-fade relative z-10 px-6 text-center">
 
           <p className="text-[10px] tracking-[0.5em] text-white/50">
             YOUR WEDDING CHAPTER
           </p>
 
-          <h1 className="mt-8 text-5xl font-light tracking-wide md:text-7xl">
+          <h1
+  className="mt-8 text-5xl font-light tracking-wide md:text-7xl"
+  style={{
+    fontFamily: "Georgia, 'Times New Roman', serif",
+  }}
+>
             {wedding.couple_name}
           </h1>
 
@@ -323,9 +328,14 @@ export default async function WeddingPage({
                 YOUR STORY
               </p>
 
-              <h2 className="mt-5 text-4xl font-light tracking-wide md:text-6xl">
-                Highlight Film
-              </h2>
+              <h2
+  className="mt-5 text-4xl font-light tracking-wide md:text-6xl"
+  style={{
+    fontFamily: "Georgia, 'Times New Roman', serif",
+  }}
+>
+  Highlight Film
+</h2>
 
               <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-white/40">
                 {highlightFilm.description ||
@@ -431,9 +441,14 @@ export default async function WeddingPage({
               MORE MEMORIES
             </p>
 
-            <h2 className="mt-5 text-4xl font-light tracking-wide md:text-6xl">
-              Your Films
-            </h2>
+            <h2
+  className="mt-5 text-4xl font-light tracking-wide md:text-6xl"
+  style={{
+    fontFamily: "Georgia, 'Times New Roman', serif",
+  }}
+>
+  Your Films
+</h2>
 
 
             <div className="mt-16 space-y-10">
