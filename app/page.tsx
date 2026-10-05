@@ -510,7 +510,7 @@ const getYouTubeFeaturedUrl = (url: string) => {
               href="/appointment"
               className="border border-white/40 px-5 py-3 text-[9px] tracking-[0.25em] text-white transition-all duration-500 hover:bg-white hover:text-black"
             >
-              BOOK AN APPOINTMENT
+              GET YOUR QUOTATION 
             </a>
 
           </div>
@@ -725,10 +725,10 @@ const getYouTubeFeaturedUrl = (url: string) => {
 
           {/* CTA Button */}
           <a
-            href="#films"
+            href="/appointment"
             className="mt-12 inline-flex items-center gap-4 border border-white/40 px-8 py-4 text-[10px] tracking-[0.3em] transition-all duration-500 hover:bg-white hover:text-black"
           >
-            EXPLORE OUR FILMS
+            GET YOUR QUOTATION 
 
             <span className="text-sm">
               →
@@ -1264,7 +1264,7 @@ who made it unforgettable. We preserve them as your story.
           href="/appointment"
           className="mt-12 inline-flex items-center gap-4 border border-white/40 px-8 py-4 text-[10px] tracking-[0.3em] transition-all duration-500 hover:bg-white hover:text-black"
         >
-          BOOK AN APPOINTMENT
+          TELL US YOUR STORY
 
           <span className="text-sm">
             →
