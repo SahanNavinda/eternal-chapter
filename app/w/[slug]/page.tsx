@@ -225,7 +225,7 @@ export default async function WeddingPage({
             <img
               src="/hero.jpg"
               alt=""
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain md:object-cover"
             />
           ) : isVimeoUrl(backgroundMedia) ? (
             <iframe
@@ -253,13 +253,13 @@ export default async function WeddingPage({
               loop
               playsInline
               preload="auto"
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain md:object-cover"
             />
           ) : (
             <img
               src={backgroundMedia}
               alt=""
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain md:object-cover"
             />
           )}
 
