@@ -256,15 +256,27 @@ export default async function WeddingPage({
               className="h-full w-full object-contain md:object-cover"
             />
           ) : (
-            <img
-              src={backgroundMedia}
-              alt=""
-              className="h-full w-full object-contain md:object-cover"
-            />
-          )}
+  <div className="absolute inset-0 overflow-hidden bg-black">
+
+    {/* Blurred background fills the screen */}
+    <img
+      src={backgroundMedia}
+      alt=""
+      className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl opacity-60"
+    />
+
+    {/* Main photograph remains fully visible */}
+    <img
+      src={backgroundMedia}
+      alt="Wedding background"
+      className="absolute inset-0 h-full w-full object-contain"
+    />
+
+  </div>
+)}
 
           {/* DARK CINEMATIC OVERLAY */}
-          <div className="absolute inset-0 bg-black/60" />
+          <div className="absolute inset-0 bg-black/45" />
 
           <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black to-transparent" />
 
