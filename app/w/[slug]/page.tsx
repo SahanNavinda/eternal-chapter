@@ -225,7 +225,7 @@ export default async function WeddingPage({
             <img
               src="/hero.jpg"
               alt=""
-              className="h-full w-full object-contain md:object-cover"
+              className="h-full w-full object-cover object-center"
             />
           ) : isVimeoUrl(backgroundMedia) ? (
             <iframe
@@ -261,7 +261,7 @@ export default async function WeddingPage({
     {/* Blurred background fills the screen */}
     <img
       src={backgroundMedia}
-      alt=""
+      alt="Wedding background"
       className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl opacity-60"
     />
 
